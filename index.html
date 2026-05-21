@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Monitoring Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'IBM Plex Sans',sans-serif;background:#F4F5F7;color:#1A1A2E;min-height:100vh;}
+
+  /* HEADER */
+  .header{background:#1A1A2E;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+  .header-left{display:flex;align-items:center;gap:12px;}
+  .logo{width:36px;height:36px;background:#C9A84C;border-radius:8px;display:flex;align-items:center;justify-content:center;}
+  .logo svg{width:20px;height:20px;fill:white;}
+  .header-title{color:white;font-size:16px;font-weight:600;}
+  .header-sub{color:#8899AA;font-size:12px;margin-top:2px;}
+  .live-pill{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:5px 12px;font-size:12px;color:#8899AA;}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:#1D9E75;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+  /* MAIN */
+  .main{padding:24px 28px;max-width:1400px;margin:0 auto;}
+
+  /* METRICS */
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;}
+  .mc{background:white;border-radius:10px;padding:14px 16px;border:1px solid #E8EAF0;}
+  .mc-label{font-size:11px;color:#6B7280;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
+  .mc-val{font-size:22px;font-weight:600;color:#1A1A2E;}
+  .mc-val.green{color:#1D9E75;}
+  .mc-val.blue{color:#185FA5;}
+  .mc-val.amber{color:#BA7517;}
+  .mc-val.red{color:#A32D2D;}
+  .mc-val.sm{font-size:14px;line-height:1.5;}
+  .mc-sub{font-size:11px;color:#9CA3AF;margin-top:4px;}
+
+  /* TOOLBAR */
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;justify-content:space-between;}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .filters select,.filters input{font-size:13px;padding:7px 12px;border:1px solid #E2E4E9;border-radius:8px;background:white;color:#1A1A2E;outline:none;}
+  .filters input{min-width:200px;}
+  .filters select:focus,.filters input:focus{border-color:#C9A84C;}
+  .btn-refresh{display:flex;align-items:center;gap:6px;font-size:13px;padding:7px 16px;border:1px solid #E2E4E9;border-radius:8px;background:white;color:#1A1A2E;cursor:pointer;font-family:inherit;}
+  .btn-refresh:hover{background:#F4F5F7;border-color:#C9A84C;}
+  .last-up{font-size:12px;color:#9CA3AF;}
+
+  /* TABLE */
+  .table-card{background:white;border-radius:10px;border:1px solid #E8EAF0;overflow:hidden;}
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{background:#F8F9FB;color:#6B7280;font-weight:500;padding:10px 12px;text-align:left;white-space:nowrap;border-bottom:1px solid #E8EAF0;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;}
+  tbody tr{border-bottom:1px solid #F0F1F5;transition:background 0.15s;}
+  tbody tr:last-child{border-bottom:none;}
+  tbody tr:hover{background:#FAFBFC;}
+  td{padding:9px 12px;vertical-align:middle;white-space:nowrap;color:#1A1A2E;}
+
+  /* BADGES */
+  .badge{display:inline-block;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500;}
+  .bd{background:#EAF3DE;color:#2E6B0F;}
+  .bp{background:#E3EFF9;color:#155A9C;}
+  .bw{background:#FEF3E2;color:#8A4F08;}
+  .bm{background:#FDE8E8;color:#922020;}
+  .bn{background:#F1F2F5;color:#4B5563;}
+
+  /* PROGRESS BAR */
+  .pbar-wrap{display:flex;align-items:center;gap:6px;}
+  .pbar{background:#F0F1F5;border-radius:20px;height:6px;width:80px;overflow:hidden;}
+  .pfill{height:100%;border-radius:20px;transition:width 0.4s;}
+
+  /* STATES */
+  .state-box{padding:3rem;text-align:center;color:#9CA3AF;font-size:13px;}
+  .spin{display:inline-block;animation:rot 0.9s linear infinite;}
+  @keyframes rot{to{transform:rotate(360deg);}}
+  .loader-icon{font-size:24px;margin-bottom:10px;display:block;}
+  .rc{padding:10px 16px;font-size:12px;color:#9CA3AF;border-top:1px solid #F0F1F5;}
+
+  /* RESPONSIVE */
+  @media(max-width:600px){
+    .main{padding:16px;}
+    .header{padding:12px 16px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 3h2v-2h2v2h2v2h-2v2h-2v-2h-2z"/></svg>
+    </div>
+    <div>
+      <div class="header-title">Project Monitoring Dashboard</div>
+      <div class="header-sub">Seminyak Royal Resort — Real-time Google Sheets</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <span class="last-up" id="lu">Belum dimuat</span>
+    <div class="live-pill">
+      <div class="live-dot"></div>
+      <span>Live</span>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="metrics">
+    <div class="mc"><div class="mc-label">Total Project</div><div class="mc-val" id="m0">—</div></div>
+    <div class="mc"><div class="mc-label">Selesai / BAST</div><div class="mc-val green" id="m1">—</div></div>
+    <div class="mc"><div class="mc-label">On Progress</div><div class="mc-val blue" id="m2">—</div></div>
+    <div class="mc"><div class="mc-label">Pending / Masalah</div><div class="mc-val amber" id="m3">—</div></div>
+    <div class="mc"><div class="mc-label">Belum Mulai</div><div class="mc-val" id="m4">—</div></div>
+    <div class="mc"><div class="mc-label">Total Nilai Pre Order</div><div class="mc-val sm green" id="m5">—</div></div>
+    <div class="mc"><div class="mc-label">Total Nilai Aktual</div><div class="mc-val sm blue" id="m6">—</div></div>
+    <div class="mc"><div class="mc-label">Avg Progress</div><div class="mc-val green" id="m7">—</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="filters">
+      <select id="fs" onchange="render()"><option value="">Semua Status</option></select>
+      <select id="fr" onchange="render()"><option value="">Semua Regional</option></select>
+      <select id="fb" onchange="render()"><option value="">Semua Branch</option></select>
+      <input id="fq" type="text" placeholder="🔍  Cari area / STO / PM / deskripsi..." oninput="render()">
+    </div>
+    <button class="btn-refresh" onclick="load()">
+      <span id="ri" style="display:inline-block;">↻</span> Refresh
+    </button>
+  </div>
+
+  <div class="table-card">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>No</th>
+          <th>Area Name</th>
+          <th>Regional</th>
+          <th>Branch</th>
+          <th>STO</th>
+          <th>Deskripsi LOP</th>
+          <th>Nilai Pre Order</th>
+          <th>Total Aktual</th>
+          <th>Status Lapangan</th>
+          <th>Progress</th>
+          <th>% Instalasi</th>
+          <th>Status Deploy</th>
+          <th>PM</th>
+          <th>Mitra</th>
+        </tr></thead>
+        <tbody id="tb">
+          <tr><td colspan="14" class="state-box">
+            <span class="loader-icon spin">⟳</span>
+            Menghubungkan ke Google Sheets...
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="rc" id="rc"></div>
+  </div>
+
+</div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbwnE3JY9IGtC4w9zmSwaJKpCHqr47J7eIlB1m5sJGCaXCQPhOKHRIE99kWje9k7NxT30Q/exec';
+let all = [];
+
+function bc(s){
+  if(!s) return 'bn';
+  const v=s.toLowerCase();
+  if(v.includes('selesai')||v.includes('done')||v.includes('bast')||v.includes('complete')||v.includes('fi')) return 'bd';
+  if(v.includes('progress')||v.includes('instalasi')||v.includes('aktif')||v.includes('on going')) return 'bp';
+  if(v.includes('pending')||v.includes('hold')||v.includes('waiting')||v.includes('menunggu')) return 'bw';
+  if(v.includes('masalah')||v.includes('kendala')||v.includes('cancel')||v.includes('problem')||v.includes('stop')) return 'bm';
+  return 'bn';
+}
+
+function rp(v){
+  if(!v||v==='-') return '-';
+  const n=parseInt(String(v).replace(/[^0-9]/g,''));
+  if(!n||isNaN(n)) return v||'-';
+  return 'Rp '+n.toLocaleString('id-ID');
+}
+
+function rpShort(v){
+  if(!v) return '—';
+  const n=parseInt(String(v).replace(/[^0-9]/g,''));
+  if(!n||isNaN(n)) return '—';
+  if(n>=1000000000000) return 'Rp '+(n/1000000000000).toFixed(2)+' T';
+  if(n>=1000000000) return 'Rp '+(n/1000000000).toFixed(1)+' M';
+  if(n>=1000000) return 'Rp '+(n/1000000).toFixed(0)+' Jt';
+  return 'Rp '+n.toLocaleString('id-ID');
+}
+
+function pbar(p){
+  const n=Math.min(parseFloat(p)||0,100);
+  const c=n>=80?'#1D9E75':n>=40?'#F59E0B':'#EF4444';
+  return `<div class="pbar-wrap"><div class="pbar"><div class="pfill" style="width:${n}%;background:${c};"></div></div><span style="font-size:11px;color:#9CA3AF;min-width:26px;">${n>0?n+'%':'-'}</span></div>`;
+}
+
+function statusCat(s){
+  if(!s) return 'other';
+  const v=s.toLowerCase();
+  if(v.includes('selesai')||v.includes('done')||v.includes('bast')||v.includes('complete')||v.includes('fi')) return 'done';
+  if(v.includes('progress')||v.includes('instalasi')||v.includes('aktif')||v.includes('on going')) return 'prog';
+  if(v.includes('pending')||v.includes('hold')||v.includes('masalah')||v.includes('kendala')||v.includes('cancel')||v.includes('stop')) return 'pend';
+  return 'other';
+}
+
+function updateMetrics(data){
+  let done=0,prog=0,pend=0,other=0,tNilai=0,tAktual=0,tPct=0,pctN=0;
+  data.forEach(r=>{
+    const cat=statusCat(r['STATUS LAPANGAN']||r['KAT STATUS LAPANGAN']||'');
+    if(cat==='done') done++;
+    else if(cat==='prog') prog++;
+    else if(cat==='pend') pend++;
+    else other++;
+    tNilai+=parseInt(String(r['NILAI PRE ORDER']||'').replace(/[^0-9]/g,''))||0;
+    tAktual+=parseInt(String(r['TOTAL ACTUAL']||r['TOTAL AKTUAL']||'').replace(/[^0-9]/g,''))||0;
+    const p=parseFloat(r['% PROGRESS INSTALASI']||r['PROGRESS']||'')||0;
+    if(p>0){tPct+=p;pctN++;}
+  });
+  document.getElementById('m0').textContent=data.length;
+  document.getElementById('m1').textContent=done;
+  document.getElementById('m2').textContent=prog;
+  document.getElementById('m3').textContent=pend;
+  document.getElementById('m4').textContent=other;
+  document.getElementById('m5').textContent=rpShort(tNilai);
+  document.getElementById('m6').textContent=rpShort(tAktual);
+  document.getElementById('m7').textContent=pctN>0?Math.round(tPct/pctN)+'%':'—';
+}
+
+function buildFilters(data){
+  const set=(id,arr)=>{
+    const el=document.getElementById(id);
+    const cur=el.value;
+    const first=el.options[0].text;
+    el.innerHTML=`<option value="">${first}</option>`+[...new Set(arr.filter(Boolean))].sort().map(v=>`<option value="${v}"${v===cur?' selected':''}>${v}</option>`).join('');
+  };
+  set('fs',data.map(r=>r['STATUS LAPANGAN']||r['KAT STATUS LAPANGAN']||''));
+  set('fr',data.map(r=>r['REGIONAL']||''));
+  set('fb',data.map(r=>r['BRANCH']||''));
+}
+
+function render(){
+  const fs=document.getElementById('fs').value;
+  const fr=document.getElementById('fr').value;
+  const fb=document.getElementById('fb').value;
+  const fq=(document.getElementById('fq').value||'').toLowerCase();
+
+  const filtered=all.filter(r=>{
+    const st=r['STATUS LAPANGAN']||r['KAT STATUS LAPANGAN']||'';
+    if(fs&&st!==fs) return false;
+    if(fr&&r['REGIONAL']!==fr) return false;
+    if(fb&&r['BRANCH']!==fb) return false;
+    if(fq){
+      const hay=[r['AREA NAME'],r['STO'],r['DESKRIPSI LOP'],r['PM'],r['BRANCH'],r['MITRA']].join(' ').toLowerCase();
+      if(!hay.includes(fq)) return false;
+    }
+    return true;
+  });
+
+  const tb=document.getElementById('tb');
+  if(!filtered.length){
+    tb.innerHTML=`<tr><td colspan="14" class="state-box">Tidak ada data yang cocok dengan filter yang dipilih.</td></tr>`;
+    document.getElementById('rc').textContent='';
+    return;
+  }
+
+  tb.innerHTML=filtered.map((r,i)=>{
+    const st=r['STATUS LAPANGAN']||r['KAT STATUS LAPANGAN']||'-';
+    const dp=r['STATUS DEPLOYMENT']||'-';
+    const pct=r['% PROGRESS INSTALASI']||r['PROGRESS']||'0';
+    const desc=(r['DESKRIPSI LOP']||'-');
+    return `<tr>
+      <td style="color:#9CA3AF;font-size:12px;">${r['NO']||i+1}</td>
+      <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;font-weight:500;">${r['AREA NAME']||'-'}</td>
+      <td>${r['REGIONAL']||'-'}</td>
+      <td>${r['BRANCH']||'-'}</td>
+      <td style="font-weight:500;">${r['STO']||'-'}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;" title="${desc}">${desc}</td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums;">${rp(r['NILAI PRE ORDER'])}</td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums;">${rp(r['TOTAL ACTUAL']||r['TOTAL AKTUAL']||'')}</td>
+      <td><span class="badge ${bc(st)}">${st}</span></td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;color:#6B7280;font-size:12px;">${r['PROGRESS SAAT INI']||r['PROGRESS']||'-'}</td>
+      <td>${pbar(pct)}</td>
+      <td><span class="badge ${bc(dp)}">${dp}</span></td>
+      <td>${r['PM']||'-'}</td>
+      <td>${r['MITRA']||'-'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('rc').textContent=`Menampilkan ${filtered.length} dari ${all.length} project`;
+}
+
+async function load(){
+  const ri=document.getElementById('ri');
+  ri.classList.add('spin');
+  try{
+    const res=await fetch(API);
+    if(!res.ok) throw new Error('HTTP error '+res.status);
+    const json=await res.json();
+    if(json.error) throw new Error(json.error);
+    all=json.data||[];
+    if(!all.length) throw new Error('Data kosong dari spreadsheet');
+    updateMetrics(all);
+    buildFilters(all);
+    render();
+    document.getElementById('lu').textContent='Update: '+new Date().toLocaleString('id-ID');
+  } catch(e){
+    document.getElementById('tb').innerHTML=`<tr><td colspan="14" class="state-box">
+      <span style="font-size:22px;display:block;margin-bottom:8px;">⚠️</span>
+      Gagal memuat data<br>
+      <small style="margin-top:6px;display:block;color:#9CA3AF;">${e.message}</small>
+    </td></tr>`;
+    document.getElementById('lu').textContent='Gagal dimuat';
+  }
+  ri.classList.remove('spin');
+}
+
+load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>
